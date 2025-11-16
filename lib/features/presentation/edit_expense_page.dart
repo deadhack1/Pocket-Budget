@@ -26,6 +26,7 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
   DateTime? _date;
   String _id = const Uuid().v4();
   bool _loading = false;
+  Expense? _existingExpense;
 
   bool get _isEditing => widget.expenseId != null;
 
@@ -49,6 +50,7 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
         orElse: () => null,
       );
       if (e != null) {
+        _existingExpense = e;
         _amountCtrl.text = (e.amountCents / 100).toStringAsFixed(2);
         _noteCtrl.text = e.note ?? '';
         _currency = e.currency;
@@ -94,7 +96,6 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
 
     final cents = (amount * 100).round();
     final now = DateTime.now();
-print("The expsens is being saved");
     final exp = Expense(
       id: _id,
       amountCents: cents,
@@ -103,14 +104,14 @@ print("The expsens is being saved");
       note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
       categoryId: null,
       receiptUri: null,
-      createdAt: now,
+      createdAt: _existingExpense?.createdAt ?? now,
       updatedAt: now,
       isDirty: true,
     );
-print(exp.toJsonString());
 
     await repo.upsert(exp);
     if (!mounted) return;
+    ref.invalidate(expensesProvider);
     context.go('/');
   }
 
@@ -118,6 +119,7 @@ print(exp.toJsonString());
     final repo = ref.read(repoProvider);
     await repo.softDelete(_id);
     if (!mounted) return;
+    ref.invalidate(expensesProvider);
     context.go('/');
   }
 
